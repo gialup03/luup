@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { TurnData } from '../services/backend';
+import React, { createContext, useContext, useState } from 'react';
+import type { ReactNode } from 'react';
+import type { TurnData } from '../services/backend';
 
 interface GameContextType {
   sessionId: string | null;

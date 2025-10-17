@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameState } from '../services/backend';
+import type { GameState } from '../services/backend';
 
 interface TurnDisplayProps {
   storyText: string;

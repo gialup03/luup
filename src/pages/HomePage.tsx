@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { backend, SaveGame } from '../services/backend';
+import { backend } from '../services/backend';
+import type { SaveGame } from '../services/backend';
 import { useGame } from '../contexts/GameContext';
 
 export const HomePage: React.FC = () => {
