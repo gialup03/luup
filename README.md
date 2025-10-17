@@ -6,9 +6,11 @@ A cross-platform turn-based text adventure game built with Tauri, React, and Typ
 
 - ✨ **Glassmorphism UI** - Apple-like design with translucent glass effects
 - 🎮 **Turn-based gameplay** - Navigate through story turns with choices
-- 🤖 **Agentic backend ready** - Designed for streaming LLM responses and tool calls
+- 🤖 **Agentic backend** - Full streaming LLM integration with Ollama
+- 🔧 **Native tool calling** - Model can modify game state in real-time
+- 💭 **Reasoning display** - See the model's thought process
 - ⚙️ **Configurable** - Settings page for Ollama server configuration
-- 💾 **Save system UI** - Interface for loading previous game saves (logic stubbed)
+- 💾 **Save system UI** - Interface for loading previous game saves
 - 📱 **Cross-platform** - Runs on Windows, macOS, and Linux
 
 ## Project Structure
@@ -121,24 +123,33 @@ Installers will be created in `src-tauri/target/release/bundle/`
 - Choice selection populates action input
 - Game state display (time, location, outfit)
 - Settings persistence
-- Stubbed backend returning hardcoded responses
+- **Agentic Loop System** - Full Ollama integration with streaming
+- **Real-time streaming** - Text and reasoning stream as generated
+- **Tool execution** - Model can update time, location, outfit
+- **Event-driven architecture** - Frontend updates in real-time
 
-### 🚧 Stubbed (Ready for Extension)
+### 🚧 In Progress
 
-- **LLM Integration** - Backend returns hardcoded story/choices
-- **Save/Load** - UI exists, but no persistence logic
-- **Streaming responses** - Currently synchronous
-- **Tool calls** - Infrastructure ready, not implemented
+- **Save/Load** - UI exists, persistence needs implementation
+- **Extended tools** - Inventory, quests, etc.
+- **Model reasoning** - Better visualization of thought process
 
-## Extending the Backend
+## Agentic System
 
-See `BACKEND_INTEGRATION.md` for a comprehensive guide on:
+The game now features a complete agentic loop system with:
 
-- **Streaming text responses** from Ollama
-- **Tool call protocol** for game state mutations
-- **Ollama HTTP client** implementation
-- **UI animations** for streaming and tool effects
-- **Example prompts** and system message templates
+- **Model Interface Layer** (`ollama.rs`) - Communicates with Ollama API
+- **Agentic Loop** (`agent.rs`) - Manages conversation and tool execution  
+- **Streaming Events** - Real-time updates to frontend
+- **Native Tool Calling** - Ollama's function calling API
+
+See `AGENTIC_SYSTEM.md` for detailed documentation on:
+- Architecture and data flow
+- Adding new tools
+- Customizing the system prompt
+- Testing and troubleshooting
+
+Also see `BACKEND_INTEGRATION.md` for integration patterns and advanced usage.
 
 ### Quick Example: Adding a Tool Call
 
@@ -225,13 +236,15 @@ MIT
 
 ## Future Enhancements
 
-- [ ] Ollama HTTP client integration
-- [ ] Streaming text responses
-- [ ] Tool call system for game state
+- [x] Ollama HTTP client integration
+- [x] Streaming text responses
+- [x] Tool call system for game state
 - [ ] Save/load persistence with local storage
-- [ ] Character inventory system
+- [ ] Multi-turn tool execution (tool → result → continue)
+- [ ] Character inventory system (extend tools)
 - [ ] Health/stats tracking
 - [ ] Achievement system
 - [ ] Custom themes
 - [ ] Sound effects and music
 - [ ] Image generation for scenes
+- [ ] Llama.cpp integration for local inference

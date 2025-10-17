@@ -1,9 +1,13 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod ollama;
+mod agent;
+
+use agent::{Agent, AgentMessage, GameState as AgentGameState};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{State, Emitter};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct TurnData {
@@ -36,12 +40,20 @@ struct SaveGame {
 struct AppState {
     ollama_config: Mutex<OllamaConfig>,
     game_history: Mutex<Vec<TurnData>>,
+    agent: Mutex<Agent>,
+    current_game_state: Mutex<AgentGameState>,
 }
 
 #[tauri::command]
 fn start_new_game(state: State<AppState>) -> Result<String, String> {
     let mut history = state.game_history.lock().unwrap();
+    let mut agent = state.agent.lock().unwrap();
+    let mut current_state = state.current_game_state.lock().unwrap();
+    
     history.clear();
+    
+    // Initialize agent and get initial state
+    *current_state = agent.start_new_game();
     
     // Add initial turn
     history.push(TurnData {
@@ -53,9 +65,9 @@ fn start_new_game(state: State<AppState>) -> Result<String, String> {
             "Open the plain wooden door".to_string(),
         ],
         game_state: GameState {
-            time: "Morning".to_string(),
-            location: "Mysterious Room".to_string(),
-            outfit: "Traveler's Cloak".to_string(),
+            time: current_state.time.clone(),
+            location: current_state.location.clone(),
+            outfit: current_state.outfit.clone(),
         },
     });
     
@@ -63,7 +75,7 @@ fn start_new_game(state: State<AppState>) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_turn(session_id: String, turn_number: u32, state: State<AppState>) -> Result<TurnData, String> {
+fn get_turn(_session_id: String, turn_number: u32, state: State<AppState>) -> Result<TurnData, String> {
     let history = state.game_history.lock().unwrap();
     
     if let Some(turn) = history.get(turn_number as usize) {
@@ -75,14 +87,15 @@ fn get_turn(session_id: String, turn_number: u32, state: State<AppState>) -> Res
 
 #[tauri::command]
 fn submit_action(
-    session_id: String,
+    _session_id: String,
     action: String,
     state: State<AppState>,
 ) -> Result<TurnData, String> {
     let mut history = state.game_history.lock().unwrap();
     let current_turn = history.len() as u32;
     
-    // Stub: Generate next turn based on action
+    // Legacy sync endpoint - just return a stub
+    // Real streaming happens via submit_action_stream
     let new_turn = TurnData {
         turn_number: current_turn,
         story_text: format!("You chose: '{}'. The path unfolds before you, revealing new mysteries and dangers. What will you do next?", action),
@@ -100,6 +113,70 @@ fn submit_action(
     
     history.push(new_turn.clone());
     Ok(new_turn)
+}
+
+#[tauri::command]
+async fn submit_action_stream(
+    window: tauri::Window,
+    _session_id: String,
+    action: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    // Clone what we need from state
+    let turn_number = {
+        let history = state.game_history.lock().unwrap();
+        history.len() as u32
+    };
+
+    // Clone agent and state to avoid holding locks across await
+    let mut agent = {
+        let agent_guard = state.agent.lock().map_err(|e| e.to_string())?;
+        agent_guard.clone()
+    };
+    
+    let mut current_state = {
+        let state_guard = state.current_game_state.lock().map_err(|e| e.to_string())?;
+        state_guard.clone()
+    };
+
+    // Process the action with streaming - no locks held here
+    let result = agent.process_action(
+        action,
+        &mut current_state,
+        turn_number,
+        |message| {
+            // Emit each message to the frontend
+            let _ = window.emit("agent-stream", &message);
+            
+            // If it's a turn complete, also save to history
+            if let AgentMessage::TurnComplete { turn_number, story_text, choices, game_state } = &message {
+                if let Ok(mut history) = state.game_history.lock() {
+                    history.push(TurnData {
+                        turn_number: *turn_number,
+                        story_text: story_text.clone(),
+                        choices: choices.clone(),
+                        game_state: GameState {
+                            time: game_state.time.clone(),
+                            location: game_state.location.clone(),
+                            outfit: game_state.outfit.clone(),
+                        },
+                    });
+                }
+            }
+        }
+    ).await;
+
+    // Update the state back after processing
+    if result.is_ok() {
+        if let Ok(mut agent_guard) = state.agent.lock() {
+            *agent_guard = agent;
+        }
+        if let Ok(mut state_guard) = state.current_game_state.lock() {
+            *state_guard = current_state;
+        }
+    }
+
+    result.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -138,15 +215,22 @@ fn main() {
     tauri::Builder::default()
         .manage(AppState {
             ollama_config: Mutex::new(OllamaConfig {
-                ip_address: "localhost:11434".to_string(),
+                ip_address: "192.168.0.100:11434".to_string(),
             }),
             game_history: Mutex::new(Vec::new()),
+            agent: Mutex::new(Agent::new()),
+            current_game_state: Mutex::new(AgentGameState {
+                time: "Morning".to_string(),
+                location: "Mysterious Room".to_string(),
+                outfit: "Traveler's Cloak".to_string(),
+            }),
         })
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             start_new_game,
             get_turn,
             submit_action,
+            submit_action_stream,
             list_saves,
             get_ollama_config,
             set_ollama_config,
