@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-slate-900 to-slate-800 text-slate-50 font-body min-h-screen;
+    margin: 0;
+    padding: 0;
+  }
+  
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-glass-elevated backdrop-blur-glass-xl rounded-2xl border border-white/10;
+  }
+  
+  .glass-button {
+    @apply bg-glass-base backdrop-blur-glass hover:bg-glass-hover rounded-xl border border-white/10 transition-all duration-200;
+  }
+}
