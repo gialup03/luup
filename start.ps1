@@ -1,5 +1,5 @@
-# Adventure Game Startup Script
-Write-Host "Starting Adventure Game..." -ForegroundColor Cyan
+# Luup Startup Script
+Write-Host "Starting Luup..." -ForegroundColor Cyan
 
 # Check if node_modules exists
 if (-not (Test-Path "node_modules")) {

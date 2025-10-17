@@ -1,4 +1,4 @@
-# Text Adventure Game
+# Luup
 
 A cross-platform turn-based text adventure game built with Tauri, React, and TypeScript. Features an extensible backend designed for integration with local LLMs via Ollama.
 
@@ -16,7 +16,7 @@ A cross-platform turn-based text adventure game built with Tauri, React, and Typ
 ## Project Structure
 
 ```
-tauri-adventure/
+luup/
 ├── src/                          # Frontend React app
 │   ├── components/               # Reusable UI components
 │   │   ├── TurnDisplay.tsx      # Story text and game state badges
@@ -61,7 +61,7 @@ tauri-adventure/
 
 ```bash
 # Clone or navigate to the project directory
-cd tauri-adventure
+cd luup
 
 # Install dependencies
 npm install

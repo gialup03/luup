@@ -82,6 +82,15 @@ impl OllamaClient {
         }
     }
 
+    /// Create a new Ollama client with custom base URL
+    pub fn with_url(base_url: String) -> Self {
+        Self {
+            base_url: format!("http://{}", base_url),
+            model: "qwen3:8b".to_string(),
+            http_client: reqwest::Client::new(),
+        }
+    }
+
     /// Send a chat request with tools and return a stream of chunks
     pub async fn chat_stream(
         &self,
@@ -95,9 +104,14 @@ impl OllamaClient {
             tools: if tools.is_empty() { None } else { Some(tools) },
         };
 
+        let url = format!("{}/api/chat", self.base_url);
+        println!("🌐 Sending request to Ollama at: {}", url);
+        println!("📦 Model: {}", self.model);
+        println!("💬 Message count: {}", request.messages.len());
+        
         let response = self
             .http_client
-            .post(format!("{}/api/chat", self.base_url))
+            .post(&url)
             .json(&request)
             .send()
             .await?;
@@ -132,7 +146,9 @@ impl OllamaClient {
                                 // Parse the JSON line
                                 match serde_json::from_str::<OllamaStreamChunk>(&line) {
                                     Ok(chunk) => {
+                                        println!("🔍 Raw Ollama chunk: done={}, message={:?}", chunk.done, chunk.message);
                                         if chunk.done {
+                                            println!("✅ Ollama stream marked as done");
                                             return Some((Ok(StreamChunk::Done), (stream, buffer)));
                                         }
 

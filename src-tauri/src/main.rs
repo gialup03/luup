@@ -122,11 +122,15 @@ async fn submit_action_stream(
     action: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    println!("🎮 submit_action_stream called with action: {}", action);
+    
     // Clone what we need from state
     let turn_number = {
         let history = state.game_history.lock().unwrap();
         history.len() as u32
     };
+
+    println!("📊 Current turn number: {}", turn_number);
 
     // Clone agent and state to avoid holding locks across await
     let mut agent = {
@@ -140,12 +144,14 @@ async fn submit_action_stream(
     };
 
     // Process the action with streaming - no locks held here
+    println!("🤖 Starting agent.process_action...");
     let result = agent.process_action(
         action,
         &mut current_state,
         turn_number,
         |message| {
             // Emit each message to the frontend
+            println!("📤 Emitting to frontend: {:?}", message);
             let _ = window.emit("agent-stream", &message);
             
             // If it's a turn complete, also save to history
@@ -168,12 +174,15 @@ async fn submit_action_stream(
 
     // Update the state back after processing
     if result.is_ok() {
+        println!("✅ Agent processing completed successfully");
         if let Ok(mut agent_guard) = state.agent.lock() {
             *agent_guard = agent;
         }
         if let Ok(mut state_guard) = state.current_game_state.lock() {
             *state_guard = current_state;
         }
+    } else {
+        println!("❌ Agent processing failed: {:?}", result);
     }
 
     result.map_err(|e| e.to_string())

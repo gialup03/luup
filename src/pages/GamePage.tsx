@@ -30,26 +30,32 @@ export const GamePage: React.FC = () => {
     const setupListener = async () => {
       const unlisten = await listen<AgentStreamMessage>('agent-stream', (event) => {
         const message = event.payload;
+        console.log('📥 Frontend received message:', message);
 
         switch (message.type) {
           case 'text_chunk':
+            console.log('💬 Adding text chunk:', message.content);
             setStreamedText((prev) => prev + message.content);
             break;
 
           case 'reasoning_chunk':
+            console.log('🤔 Adding reasoning chunk:', message.content);
             setStreamedReasoning((prev) => prev + message.content);
             break;
 
           case 'tool_call':
+            console.log('🔧 Tool call:', message.name);
             setToolCallsInProgress((prev) => [...prev, { name: message.name, args: message.args }]);
             break;
 
           case 'tool_result':
+            console.log('✅ Tool result:', message.name);
             // Tool executed successfully - remove from in-progress list
             setToolCallsInProgress((prev) => prev.filter((tc) => tc.name !== message.name));
             break;
 
           case 'turn_complete':
+            console.log('🏁 Turn complete, adding to history');
             // Turn is complete - add to history
             addTurn({
               turn_number: message.turn_number,
@@ -66,10 +72,14 @@ export const GamePage: React.FC = () => {
             break;
 
           case 'error':
+            console.error('❌ Error message:', message.message);
             setStreamError(message.message);
             setIsStreaming(false);
             setIsSubmitting(false);
             break;
+
+          default:
+            console.warn('⚠️ Unknown message type:', message);
         }
       });
 
@@ -91,8 +101,12 @@ export const GamePage: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!sessionId || !customAction.trim() || !isCurrentTurn || isStreaming) return;
+    if (!sessionId || !customAction.trim() || !isCurrentTurn || isStreaming) {
+      console.log('❌ Submit blocked:', { sessionId, hasAction: !!customAction.trim(), isCurrentTurn, isStreaming });
+      return;
+    }
 
+    console.log('🚀 Submitting action:', customAction);
     setIsSubmitting(true);
     setIsStreaming(true);
     setStreamedText('');
@@ -100,9 +114,11 @@ export const GamePage: React.FC = () => {
     setStreamError(null);
 
     try {
+      console.log('📡 Calling backend.submitActionStream...');
       await backend.submitActionStream(sessionId, customAction);
+      console.log('✅ Backend call completed');
     } catch (error) {
-      console.error('Failed to submit action:', error);
+      console.error('❌ Failed to submit action:', error);
       setStreamError('Failed to connect to the storyteller. Please check your Ollama connection.');
       setIsStreaming(false);
       setIsSubmitting(false);

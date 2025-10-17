@@ -35,7 +35,7 @@ export const HomePage: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-6xl font-heading font-bold mb-4 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            Adventure Awaits
+            Luup
           </h1>
           <p className="text-slate-300 text-lg">Your story begins here</p>
         </div>

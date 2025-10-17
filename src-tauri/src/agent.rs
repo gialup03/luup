@@ -45,6 +45,13 @@ impl Agent {
         }
     }
 
+    pub fn with_ollama_url(base_url: String) -> Self {
+        Self {
+            client: OllamaClient::with_url(base_url),
+            conversation_history: Vec::new(),
+        }
+    }
+
     /// Initialize a new game session
     pub fn start_new_game(&mut self) -> GameState {
         self.conversation_history.clear();
@@ -93,22 +100,26 @@ impl Agent {
         let mut accumulated_reasoning = String::new();
         
         // Process stream
+        println!("📡 Starting to process Ollama stream...");
         while let Some(chunk_result) = stream.next().await {
             match chunk_result {
                 Ok(chunk) => match chunk {
                     StreamChunk::TextChunk(content) => {
+                        println!("💬 Text chunk received: {}", content);
                         accumulated_text.push_str(&content);
                         emit(AgentMessage::TextChunk { 
                             content: content.clone() 
                         });
                     }
                     StreamChunk::ReasoningChunk(content) => {
+                        println!("🤔 Reasoning chunk received: {}", content);
                         accumulated_reasoning.push_str(&content);
                         emit(AgentMessage::ReasoningChunk { 
                             content: content.clone() 
                         });
                     }
                     StreamChunk::ToolCall { name, arguments } => {
+                        println!("🔧 Tool call received: {} with args: {:?}", name, arguments);
                         // Emit tool call notification
                         emit(AgentMessage::ToolCall {
                             name: name.clone(),
@@ -117,10 +128,12 @@ impl Agent {
 
                         // Execute tool and update state
                         if let Err(e) = self.execute_tool(&name, &arguments, current_state) {
+                            println!("❌ Tool execution failed: {}", e);
                             emit(AgentMessage::Error {
                                 message: format!("Tool execution failed: {}", e),
                             });
                         } else {
+                            println!("✅ Tool executed successfully, new state: {:?}", current_state);
                             // Emit updated state
                             emit(AgentMessage::ToolResult {
                                 name: name.clone(),
@@ -129,10 +142,12 @@ impl Agent {
                         }
                     }
                     StreamChunk::Done => {
+                        println!("🏁 Stream done signal received");
                         break;
                     }
                 },
                 Err(e) => {
+                    println!("❌ Stream error: {}", e);
                     emit(AgentMessage::Error {
                         message: format!("Stream error: {}", e),
                     });
@@ -140,6 +155,7 @@ impl Agent {
                 }
             }
         }
+        println!("📝 Accumulated text length: {} chars", accumulated_text.len());
 
         // Add assistant response to history
         if !accumulated_text.is_empty() {
@@ -151,11 +167,13 @@ impl Agent {
 
         // Generate choices (for now, use defaults - could be extracted from model response)
         let choices = self.extract_choices(&accumulated_text);
+        println!("🎲 Extracted {} choices from text", choices.len());
 
         // Emit turn complete
+        println!("🎯 Emitting TurnComplete with {} chars of story text", accumulated_text.len());
         emit(AgentMessage::TurnComplete {
             turn_number,
-            story_text: accumulated_text,
+            story_text: accumulated_text.clone(),
             choices: choices.clone(),
             game_state: current_state.clone(),
         });

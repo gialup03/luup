@@ -1,5 +1,5 @@
 [package]
-name = "tauri-adventure"
+name = "luup"
 version = "0.1.0"
 description = "A text adventure game with agentic backend"
 authors = ["you"]

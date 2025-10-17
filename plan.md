@@ -5,7 +5,7 @@ Request: Build a cross-platform turn-based text adventure game with Tauri, stubb
 
 # Spec Header
 
-**Name**: Tauri Text Adventure Game  
+**Name**: Luup  
 **Smallest Scope**: Complete desktop app with three screens (home, settings, game) and extensible backend interface  
 **Non-Goals**: 
 - Actual LLM integration in this phase (stubbed responses only)
@@ -731,7 +731,7 @@ export const HomePage: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-6xl font-heading font-bold mb-4 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            Adventure Awaits
+            Luup
           </h1>
           <p className="text-slate-300 text-lg">Your story begins here</p>
         </div>
